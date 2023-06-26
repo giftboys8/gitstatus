@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from git import Repo
 from datetime import datetime
+import os
 
 
 # 代码提交类型
@@ -72,8 +73,6 @@ def infer_commit_type(commit_message):
     
 # 收集git数据
 def collect_git_data(repo_path):
-
-    repo_path = "<your_repository_path>"
     repo = Repo(repo_path)
     # if since_date is None and until_date is None:
     commits_in_range = list(repo.iter_commits())
@@ -176,23 +175,19 @@ def save_to_csv(data, output_csv_path):
 def main():
     parser = argparse.ArgumentParser(description="Collect git data.")
     parser.add_argument("repository_path", help="Path to the git repository.")
-    parser.add_argument("output_csv_path", help="Path to the output CSV file.")
-    # parser.add_argument("since_date", help="Since Date commit.")
-    # parser.add_argument("until_date", help="Until Date commit.")
     args = parser.parse_args()
+    repr_name = args.repository_path.split(os.sep)[-1]
 
-    # 如果不填写第3个参数，默认为当前时间
-    # if args.since_date is None:
-    #     args.since_date = '2023-01-01'
-    # if args.until_date is None:
-    #     args.until_date = '2023-06-01'
-
-    # since_date = datetime.strptime(args.since_date, '%Y-%m-%d')
-    # until_date = datetime.strptime(args.until_date, '%Y-%m-%d')
-
-
+    # 系统目录分隔符
+    output_csv_path = f"{repr_name}_git_data.csv"
     data = collect_git_data(args.repository_path)
-    save_to_csv(data, args.output_csv_path)
+
+    # 创建文件夹
+    folder_name = repr_name
+    if not os.path.exists(folder_name): 
+        os.makedirs(folder_name, exist_ok=True)
+
+    save_to_csv(data, f"{folder_name}{os.sep}{output_csv_path}")
 
 if __name__ == "__main__":
     main()
