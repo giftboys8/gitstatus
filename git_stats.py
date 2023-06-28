@@ -53,6 +53,7 @@ def infer_file_type(file_path) -> str:
         return "Backend"
     else:
         return "Other"
+    
 # 通过file字段的内容来确认文件类别（包含:config/conf为[配置文件]，test为[测试文件]，svg/png为[资源文件]，其他为[其他文件]）
 def infer_file_category(file_path) -> str:
     file_category = file_path.lower()
@@ -122,41 +123,8 @@ def collect_git_data(repo_path):
                 code_contribution = 0
             dev_type = infer_file_type(file)
             file_category = infer_file_category(file)
-            # 当前commit影响的分支
             
-
-            # dependencies = []
-            # if dev_type == "Frontend":
-            #     try:
-            #       if file.endswith(".vue"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("import")]
-            #       elif file.endswith(".js"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("import")]
-            #       elif file.endswith(".css"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("@import")]
-            #     except:
-            #         continue
-            # if dev_type == "Backend":
-            #     try:
-            #       if file.endswith(".py"):
-            #       # 文件不存在时请跳过
-            #         dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("from")]
-            #       elif file.endswith(".java"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("import")]
-            #       elif file.endswith(".go"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("import")]
-            #       elif file.endswith(".c"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("#include")]
-            #       elif file.endswith(".cpp"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("#include")]
-            #       elif file.endswith(".h"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("#include")]
-            #       elif file.endswith(".hpp"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("#include")]
-            #       elif file.endswith(".rs"):
-            #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("use")]
-            #     except:
-            #           continue
+            # 发送数据给协程
             c.send(
                 {
                   "branches": json.dumps(branches),
@@ -182,32 +150,8 @@ def collect_git_data(repo_path):
                   # "dependencies": json.dumps(dependencies), # 依赖
                   # "dependencies_count": len(dependencies), # 依赖数量
                 }
-            )  # 发送数据给协程
+            )  
 
-            # data.append({
-            #     "branches": json.dumps(branches),
-            #     "commit_id": commit_id,
-            #     "commit_time": commit_time,
-            #     "commit_weekday": commit_weekday,
-            #     "commit_hour": commit_hour,
-            #     "commit_month": commit_month,
-            #     "commit_day": commit_day,
-            #     "commit_message": commit_message,
-            #     "commit_type": commit_type,
-            #     "author": author,
-            #     "file": file,
-            #     "file_type": file.split(".")[-1].lower().strip('"'),
-            #     "dev_type": dev_type, # 开发类型
-            #     "commit_count": commit_count,
-            #     "commit_size": commit_size,
-            #     "commit_stability": commit_stability,
-            #     "commit_conflict": commit_conflict,
-            #     "code_contribution": code_contribution,
-            #     "affected_files": json.dumps(affected_files),
-            #     "file_category": file_category, # 文件类别
-            #     # "dependencies": json.dumps(dependencies), # 依赖
-            #     # "dependencies_count": len(dependencies), # 依赖数量
-            # })
     return c.get_data()
 
 def save_to_csv(data, output_csv_path):
