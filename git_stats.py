@@ -5,6 +5,22 @@ from git import Repo
 from datetime import datetime
 import os
 
+class Collector:
+    def __init__(self):
+        self.data = []
+        self.coroutine = self._collector()
+        next(self.coroutine)  # 需要先调用next()来启动协程
+
+    def _collector(self):
+        while True:
+            x = yield  # 用作表达式的yield可以接收send()方法发送的值
+            self.data.append(x)
+
+    def send(self, x):
+        self.coroutine.send(x)
+
+    def get_data(self):
+        return self.data
 
 # 代码提交类型
 COMMIT_TYPES = {
@@ -27,9 +43,6 @@ def count_code_lines(repo_path, start_commit_sha, end_commit_sha):
     for diff in diff_index.iter_change_type('M'):
         added_lines += diff.diff.count('\n+')
         deleted_lines += diff.diff.count('\n-')
-
-    print(f"Added lines: {added_lines}")
-    print(f"Deleted lines: {deleted_lines}")
 
 # 根据文件后缀判断是前端还是后端
 def infer_file_type(file_path) -> str:
@@ -70,16 +83,18 @@ def infer_commit_type(commit_message):
         if keyword in commit_message.lower():
             return commit_type
     return "Other"
-    
-# 收集git数据
+
+
+# 获取提交信息    
+def get_commits(repo):
+    for commit in repo.iter_commits():
+        yield commit
+
 def collect_git_data(repo_path):
     repo = Repo(repo_path)
-    # if since_date is None and until_date is None:
-    commits_in_range = list(repo.iter_commits())
-    # else:
-        # commits_in_range = [commit for commit in repo.iter_commits() if since_date <= commit.committed_datetime <= until_date]
+    commits_in_range = get_commits(repo)
 
-    data = []
+    # data = []
 
     for commit in commits_in_range:
         commit_id = commit.hexsha
@@ -94,6 +109,7 @@ def collect_git_data(repo_path):
         commit_type = infer_commit_type(commit_message)
         affected_files = [item.a_path for item in commit.diff(None)]
         commit_conflict = len(commit.parents) > 1 or "conflict" in commit_message.lower()
+        c = Collector()  # 创建协程
 
         for file, file_stats in commit.stats.files.items():
             commit_count = 1
@@ -141,32 +157,58 @@ def collect_git_data(repo_path):
             #           dependencies = [item.strip() for item in open(file).readlines() if item.strip().startswith("use")]
             #     except:
             #           continue
-                
-            data.append({
-                "branches": json.dumps(branches),
-                "commit_id": commit_id,
-                "commit_time": commit_time,
-                "commit_weekday": commit_weekday,
-                "commit_hour": commit_hour,
-                "commit_month": commit_month,
-                "commit_day": commit_day,
-                "commit_message": commit_message,
-                "commit_type": commit_type,
-                "author": author,
-                "file": file,
-                "file_type": file.split(".")[-1].lower().strip('"'),
-                "dev_type": dev_type, # 开发类型
-                "commit_count": commit_count,
-                "commit_size": commit_size,
-                "commit_stability": commit_stability,
-                "commit_conflict": commit_conflict,
-                "code_contribution": code_contribution,
-                "affected_files": json.dumps(affected_files),
-                "file_category": file_category, # 文件类别
-                # "dependencies": json.dumps(dependencies), # 依赖
-                # "dependencies_count": len(dependencies), # 依赖数量
-            })
-    return data
+            c.send(
+                {
+                  "branches": json.dumps(branches),
+                  "commit_id": commit_id,
+                  "commit_time": commit_time,
+                  "commit_weekday": commit_weekday,
+                  "commit_hour": commit_hour,
+                  "commit_month": commit_month,
+                  "commit_day": commit_day,
+                  "commit_message": commit_message,
+                  "commit_type": commit_type,
+                  "author": author,
+                  "file": file,
+                  "file_type": file.split(".")[-1].lower().strip('"'),
+                  "dev_type": dev_type, # 开发类型
+                  "commit_count": commit_count,
+                  "commit_size": commit_size,
+                  "commit_stability": commit_stability,
+                  "commit_conflict": commit_conflict,
+                  "code_contribution": code_contribution,
+                  "affected_files": json.dumps(affected_files),
+                  "file_category": file_category, # 文件类别
+                  # "dependencies": json.dumps(dependencies), # 依赖
+                  # "dependencies_count": len(dependencies), # 依赖数量
+                }
+            )  # 发送数据给协程
+
+            # data.append({
+            #     "branches": json.dumps(branches),
+            #     "commit_id": commit_id,
+            #     "commit_time": commit_time,
+            #     "commit_weekday": commit_weekday,
+            #     "commit_hour": commit_hour,
+            #     "commit_month": commit_month,
+            #     "commit_day": commit_day,
+            #     "commit_message": commit_message,
+            #     "commit_type": commit_type,
+            #     "author": author,
+            #     "file": file,
+            #     "file_type": file.split(".")[-1].lower().strip('"'),
+            #     "dev_type": dev_type, # 开发类型
+            #     "commit_count": commit_count,
+            #     "commit_size": commit_size,
+            #     "commit_stability": commit_stability,
+            #     "commit_conflict": commit_conflict,
+            #     "code_contribution": code_contribution,
+            #     "affected_files": json.dumps(affected_files),
+            #     "file_category": file_category, # 文件类别
+            #     # "dependencies": json.dumps(dependencies), # 依赖
+            #     # "dependencies_count": len(dependencies), # 依赖数量
+            # })
+    return c.get_data()
 
 def save_to_csv(data, output_csv_path):
     df = pd.DataFrame(data)
@@ -191,3 +233,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
