@@ -1,0 +1,10 @@
+*.txt
+*.csv
+*.xlsx
+__pychache__/
+my_model/
+*.json
+*.png
+*.jsonl
+*.pd
+*.html
